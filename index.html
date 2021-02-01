@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="Technology">
+    <meta name="author" content="Mustafa BOLEKEN">
+
+    <title>Müzayede TV</title>
+
+	<style>
+	textarea {
+    width: 500px;
+    min-height: 75px;
+}
+.cover {
+  object-fit: cover;
+}
+.fill {
+  object-fit: fill;
+}
+
+.contain {
+  object-fit: contain;
+}
+video { width: 100%; height: 100%; display: block; top: 0; left: 0;}
+	</style>
+  </head>
+  <body>
+
+
+<video class="cover" id="video1" autoplay muted></video> <br />
+
+<br />
+
+    Key Yayıncı<br />
+<textarea id="localSessionDescription" readonly="true"></textarea> <br />
+
+Key Server<br />
+<textarea id="remoteSessionDescription"></textarea> <br />
+<button onclick="window.startSession()"> Yayını başlat </button><br />
+
+
+Logs<br />
+<div id="logs"></div>
+
+    <script>
+	/* eslint-env browser */
+
+let pc = new RTCPeerConnection({
+  iceServers: [
+    {
+      urls: 'stun:stun.l.google.com:19302'
+    }
+  ]
+})
+var log = msg => {
+  document.getElementById('logs').innerHTML += msg + '<br>'
+}
+
+navigator.mediaDevices.getUserMedia({ 
+	video:    {
+	optional: [
+    {minWidth: 320},
+    {minWidth: 640},
+    {minWidth: 1024},
+    {minWidth: 1280},
+    {minWidth: 1920},
+    {minWidth: 2560},
+  ]
+	},
+    audio: {
+    autoGainControl: false,
+    channelCount: 2,
+    echoCancellation: false,
+    latency: 0,
+    noiseSuppression: false,
+    sampleRate: 48000,
+    sampleSize: 16,
+    volume: 1.0
+  } })
+  .then(stream => {
+    stream.getTracks().forEach(track => pc.addTrack(track, stream))
+    document.getElementById('video1').srcObject = stream 
+    pc.createOffer().then(d => pc.setLocalDescription(d)).catch(log)
+  }).catch(log)
+  
+pc.oniceconnectionstatechange = e => log(pc.iceConnectionState)
+pc.onicecandidate = event => {
+  if (event.candidate === null) {
+    document.getElementById('localSessionDescription').value = btoa(JSON.stringify(pc.localDescription))
+  }
+}
+
+window.startSession = () => {
+  let sd = document.getElementById('remoteSessionDescription').value
+  if (sd === '') {
+    return alert('Session Description must not be empty')
+  }
+
+  try {
+    pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(atob(sd))))
+  } catch (e) {
+    alert(e)
+  }
+}
+	</script>
+  </body>
+</html>
+
